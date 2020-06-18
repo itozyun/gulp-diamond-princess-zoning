@@ -11,16 +11,17 @@ gulp.task( 'test',
                         labelPackageGlobal : 'packageGlobal',
                         labelModuleGlobal  : 'moduleGlobal',
                         basePath           : 'src',
+                        wrapAll            : true,
                         testData           : {
-                            'src/global.js'                  : 'var Util = {};',
-                            'src/packageGlobal.js'           : 'var TEMP = {};',
-                            'src/ajaxModule/moduleGlobal.js' : 'var ajaxCommon;',
-                            'src/ajaxModule/XHR.js'          : 'if( window.XMLHttpRequest ){}',
-                            'src/ajaxModule/fetch.js'        : 'if( window.fetch ){}',
-                            'src/domModule/moduleGlobal.js'  : 'var domCommon;',
-                            'src/domModule/DOM0.js'          : 'if( document.all ){}',
-                            'src/domModule/DOM1.js'          : 'if( document.getElementsByTagName ){}',
-                            'src/domModule/patch/ieFilter.js': 'if( UA.IE < 9 ){}',
+                            'global.js'                  : 'var Util = {};',
+                            'packageGlobal.js'           : 'var TEMP = {};',
+                            'ajaxModule/moduleGlobal.js' : 'var ajaxCommon;',
+                            'ajaxModule/XHR.js'          : 'if( window.XMLHttpRequest ){}',
+                            'ajaxModule/fetch.js'        : 'if( window.fetch ){}',
+                            'domModule/moduleGlobal.js'  : 'var domCommon;',
+                            'domModule/DOM0.js'          : 'if( document.all ){}',
+                            'domModule/DOM1.js'          : 'if( document.getElementsByTagName ){}',
+                            'domModule/patch/ieFilter.js': 'if( UA.IE < 9 ){}',
                         }
                     }
                 )
@@ -38,7 +39,8 @@ gulp.task( 'test2',
                         labelGlobal        : 'global',
                         labelPackageGlobal : 'packageGlobal',
                         labelModuleGlobal  : 'moduleGlobal',
-                        basePath           : 'testPackageProject'
+                        basePath           : 'testPackageProject',
+                        wrapAll            : true,
                     }
                 )
             )
