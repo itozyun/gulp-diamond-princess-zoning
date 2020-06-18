@@ -69,33 +69,30 @@ module.exports = function( options ){
         for( path in SRC_FILES ){
             if( path.match( LABEL_GLOBAL ) ){
                 texts.push( '// file:' + path, SRC_FILES[ path ] );
+                console.log( '// file:' + path );
                 delete SRC_FILES[ path ];
             };
         };
 
         // packageGlobal, moduleGlobal, module imprementation
         texts.push( '(function(){' );
+        console.log( '(function(){' );
 
         for( path in SRC_FILES ){
-            console.log( path )
             content = SRC_FILES[ path ];
             if( path.match( LABEL_PACKAGE_GLOBAL ) ){
-                console.log( currentDepth + ' g' );
                 nestFunction( -currentDepth, content );
             } else {
                 dirTransition = lastPath ? comparePath( lastPath, path ) : 0;
                 wrap = WRAP_ALL && !path.match( LABEL_MODULE_GLOBAL );
 
                 if( typeof dirTransition === 'number' ){
-                    console.log( currentDepth + ' A.' + dirTransition + ' ' + dirDepth )
                     nestFunction( currentDepth ? dirTransition : dirDepth, content, wrap );
                 } else {
                     if( currentDepth ){
-                        console.log( currentDepth + ' B.' +  dirTransition.up + ' ' + dirTransition.down )
                         nestFunction( - dirTransition.up );
                         nestFunction( dirTransition.down, content, wrap );
                     } else {
-                        console.log( currentDepth + ' C.' + dirDepth )
                         nestFunction( dirDepth, content, wrap );
                     };
                 };
@@ -104,10 +101,11 @@ module.exports = function( options ){
         };
         nestFunction( -currentDepth );
         texts.push( '})();' );
+        console.log( '})();' );
 
         function comparePath( oldPath, newPath ){
-           var oldPathElms = oldPath.split( Path.sep ),
-               newPathElms = newPath.split( Path.sep ),
+           var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),
+               newPathElms = newPath.split( TEST_MODE ? '/' : Path.sep ),
                oldDirLen   = oldPathElms.length - 1,
                newDirLen   = dirDepth = newPathElms.length - 1,
                i = 0, l = newDirLen < oldDirLen ? newDirLen : oldDirLen;
@@ -126,14 +124,25 @@ module.exports = function( options ){
 
             if( currentDepth < 0 ) this.emit( 'error', new PluginError( PluginName, 'Nesting error!' ) );
 
-            if( depth < 0 ){
-                content && texts.push( '// file:' + path );
-                wrap ? texts.push( '(function(){', content, '})();' ) : content && texts.push( content );
-                for( ; depth; ++depth ) texts.push( '})();' );
+            if( 0 < depth ){
+                for( ; depth; --depth ){
+                    texts.push( '(function(){' );
+                    console.log( '(function(){' );
+                };
+            };
+            content && texts.push( '// file:' + path );
+            if( wrap ){
+                texts.push( '(function(){', content, '})();' );
+                console.log( '(function(){ /* ', path, ' */ })();' );
             } else {
-                for( ; depth; --depth ) texts.push( '(function(){' );
-                content && texts.push( '// file:' + path );
-                wrap ? texts.push( '(function(){', content, '})();' ) : content && texts.push( content );
+                content && texts.push( content );
+                console.log( '// file:' + path );
+            };
+            if( depth < 0 ){
+                for( ; depth; ++depth ){
+                    texts.push( '})();' );
+                    console.log( '})();' );
+                };
             };
         };
 
