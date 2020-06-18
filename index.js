@@ -53,7 +53,7 @@ module.exports = function( options ){
 
     function flush( callback ){
         var i = -1, texts = [], file,
-            path, content, dirTransition, lastPath,
+            path, content, dirTransition, lastPath = '<dummy>.js',
             currentDepth = 0, dirDepth = 0, wrap;
 
         // sort
@@ -83,7 +83,7 @@ module.exports = function( options ){
             if( path.match( LABEL_PACKAGE_GLOBAL ) ){
                 nestFunction( -currentDepth, content );
             } else {
-                dirTransition = lastPath ? comparePath( lastPath, path ) : 0;
+                dirTransition = comparePath( lastPath, path );
                 wrap = WRAP_ALL && !path.match( LABEL_MODULE_GLOBAL );
 
                 if( typeof dirTransition === 'number' ){
