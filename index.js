@@ -89,6 +89,7 @@ module.exports = function( options ){
                 if( typeof dirTransition === 'number' ){
                     nestFunction( currentDepth ? dirTransition : dirDepth, content, wrap );
                 } else {
+                    // console.log( '// crt:' + currentDepth + ' ↑' + dirTransition.up + ' ↓' + dirTransition.down );
                     if( currentDepth ){
                         nestFunction( - dirTransition.up );
                         nestFunction( dirTransition.down, content, wrap );
@@ -108,11 +109,11 @@ module.exports = function( options ){
                newPathElms = newPath.split( TEST_MODE ? '/' : Path.sep ),
                oldDirLen   = oldPathElms.length - 1,
                newDirLen   = dirDepth = newPathElms.length - 1,
-               i = 0, l = newDirLen < oldDirLen ? newDirLen : oldDirLen;
+               i = 0;
 
-            for( ; i < l; ++i ){
+            for( ; i < Math.min( newDirLen, oldDirLen ); ++i ){
                 if( oldPathElms[ i ] !== newPathElms[ i ] ){
-                    return { up : l - i, down : l - i };
+                    return { up : oldDirLen - i, down : newDirLen - i };
                 };
             };
             return i ? ( newDirLen - oldDirLen ) : { up : oldDirLen, down : newDirLen };
@@ -134,8 +135,8 @@ module.exports = function( options ){
             if( wrap ){
                 texts.push( '(function(){', content, '})();' );
                 console.log( '(function(){ /* ', path, ' */ })();' );
-            } else {
-                content && texts.push( content );
+            } else if( content ){
+                texts.push( content );
                 console.log( '// file:' + path );
             };
             if( depth < 0 ){
