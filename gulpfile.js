@@ -1,5 +1,6 @@
 const gulp    = require( 'gulp' ),
-      gulpDPZ = require( './index.js' );
+      gulpDPZ = require( './index.js' ),
+      tempDir = require('os').tmpdir() + '/gulpDPZ';
 
 gulp.task( 'test',
     function( cb ){
@@ -46,6 +47,6 @@ gulp.task( 'test2',
                     }
                 )
             )
-            .pipe(gulp.dest( 'R:/d' ));
+            .pipe(gulp.dest( tempDir ));
     }
 );
