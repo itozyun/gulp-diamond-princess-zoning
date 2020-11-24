@@ -43,6 +43,7 @@ gulp.task( 'precompile',
                         labelGlobal        : 'global',
                         labelPackageGlobal : 'packageGlobal',
                         labelModuleGlobal  : 'moduleGlobal',
+                        packageGlobalArgs  : 'window,document',
                         basePath           : 'myUtilProject'
                     }
                 )
@@ -59,6 +60,7 @@ gulp.task( 'precompile',
 | labelGlobal        | `'global'`        | `Vinyl.prototype.path` に match する文字列 |
 | labelPackageGlobal | `'packageGlobal'` | `Vinyl.prototype.path` に match する文字列 |
 | labelModuleGlobal  | `'moduleGlobal'`  | `Vinyl.prototype.path` に match する文字列 |
+| packageGlobalArgs  | `''`              | packageGlobal に渡す引数。ブラウザ提供のグローバルメンバーをローカル化することでアクセスが早くなったり、圧縮時に名前が短くなる。 |
 | outputFilename     | `'output.js'`     |  |
 | basePath           | `'src'`           |  |
 | wrapAll            | `false`           |  |
@@ -88,7 +90,7 @@ if( window.fetch ){}
 // myUtilProject/global.js
 var Util = {};
 
-(function(){
+(function(window,document){
     // myUtilProject/packageGlobal.js
     var TEMP = {};
 
@@ -102,7 +104,7 @@ var Util = {};
         // myUtilProject/ajaxModule/Fetch.js
         if( window.fetch ){}
     })();
-})();
+})(window,document);
 ~~~
 
 ## wrapAll

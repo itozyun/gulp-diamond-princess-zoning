@@ -11,6 +11,7 @@ gulp.task( 'test',
                         labelGlobal        : 'global',
                         labelPackageGlobal : 'packageGlobal',
                         labelModuleGlobal  : 'moduleGlobal',
+                        packageGlobalArgs  : 'window,document',
                         basePath           : 'src',
                         // wrapAll            : true,
                         testData           : {
@@ -43,6 +44,7 @@ gulp.task( 'test2',
                         labelPackageGlobal : 'packageGlobal',
                         labelModuleGlobal  : 'moduleGlobal',
                         basePath           : 'testPackageProject',
+                        packageGlobalArgs  : 'window,document',
                         wrapAll            : true,
                     }
                 )

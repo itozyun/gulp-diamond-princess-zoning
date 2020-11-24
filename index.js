@@ -21,6 +21,7 @@ module.exports = function( options ){
           LABEL_GLOBAL         = _options.labelGlobal        || 'global',
           LABEL_PACKAGE_GLOBAL = _options.labelPackageGlobal || 'packageGlobal',
           LABEL_MODULE_GLOBAL  = _options.labelModuleGlobal  || 'moduleGlobal',
+          PACKAGE_GLOBAL_ARGS  = _options.packageGlobalArgs  || '',
           OUTPUT_FILE_NAME     = _options.outputFilename     || 'output.js',
           WRAP_ALL             = _options.wrapAll,
           BASE_PATH            = TEST_MODE ? _options.basePath : Path.resolve( _options.basePath || 'src' );
@@ -75,8 +76,8 @@ module.exports = function( options ){
         };
 
         // packageGlobal, moduleGlobal, module imprementation
-        texts.push( '(function(){' );
-        console.log( '(function(){' );
+        texts.push( '(function(' + PACKAGE_GLOBAL_ARGS + '){' );
+        console.log( '(function(' + PACKAGE_GLOBAL_ARGS + '){' );
 
         for( path in SRC_FILES ){
             content = SRC_FILES[ path ];
@@ -101,8 +102,8 @@ module.exports = function( options ){
             lastPath = path;
         };
         nestFunction( -currentDepth );
-        texts.push( '})();' );
-        console.log( '})();' );
+        texts.push( '})(' + PACKAGE_GLOBAL_ARGS + ');' );
+        console.log( '})(' + PACKAGE_GLOBAL_ARGS + ');' );
 
         function comparePath( oldPath, newPath ){
            var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),
