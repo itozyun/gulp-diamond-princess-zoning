@@ -1,6 +1,6 @@
 {
   "name": "gulp-diamond-princess-zoning",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "レガシーなゾーニングによって、js パッケージの変数定義に関する品質を担保します。またモジュール毎に無名関数でラップすることで実行時のルックアップを高速化します。",
   "main": "index.js",
   "author": "itozyun",
