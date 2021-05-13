@@ -57,12 +57,12 @@ gulp.task( 'precompile',
 
 | Name               | default value     | description |
 |:-------------------|:------------------|:------------|
-| labelGlobal        | `'global'`        | `Vinyl.prototype.path` に match する文字列 |
-| labelPackageGlobal | `'packageGlobal'` | `Vinyl.prototype.path` に match する文字列 |
-| labelModuleGlobal  | `'moduleGlobal'`  | `Vinyl.prototype.path` に match する文字列 |
+| labelGlobal        | `'global'`        | `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。Since version 0.9.8 : `"*"` を指定すると全てが global になるけどこれでは gulp-concat と変わらない。 |
+| labelPackageGlobal | `'packageGlobal'` | `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。Since version 0.9.8 : `"*"` を指定すると global 以外は packageGlobal になる。小さいプロジェクトで、`(function(){ ... })()` のオーバーヘッドを忌避する場合に。 |
+| labelModuleGlobal  | `'moduleGlobal'`  | `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。 |
 | packageGlobalArgs  | `''`              | packageGlobal に渡す引数。ブラウザ提供のグローバルメンバーをローカル化することでアクセスが早くなったり、圧縮時に名前が短くなる。 |
 | outputFilename     | `'output.js'`     |  |
-| basePath           | `'src'`           |  |
+| basePath           | `''`              | 内部では `Path.resolve(basePath)` した値が使われます。 |
 | wrapAll            | `false`           |  |
 
 ### 各ファイルの内容
@@ -137,4 +137,74 @@ var Util = {};
         })();
     })();
 })();
+~~~
+
+## 複数のパッケージでパッケージグローバルを共有する(Since version 0.9.8)
+
+異なるディレクトリで開発しているパッケージ間で、packageGlobal を共有できます。この為には、basePath に配列を与えます。
+
+### MyProjects/packageB/gulpfile.js
+
+~~~js
+gulp.src( [ 'D:/MyProjects/packageA/src/js/**/*.js', './src/js/**/*.js' ] )
+    .pipe(
+        gulpDPZ(
+            {
+                basePath : [ 'MyProjects/packageA/src/js/', 'MyProjects/packageB/src/js/' ]
+            }
+        )
+    )
+~~~
+
+### output
+
+`'packageA/src/js/'` と `'packageB/src/js/'` が同一ディレクトリに存在するように扱われます。
+
+~~~js
+// file:MyProjects/projectA/src/js/global.js
+var g_Util = {};
+
+// file:MyProjects/projectB/src/js/global.js
+var g_Framework = {};
+
+(function(window,document){
+    // file:MyProjects/projectA/src/js/packageGlobal.js
+    var pG$projectA_TEMP = {};
+
+    (function(){
+        // file:MyProjects/projectA/src/js/domModule/moduleGlobal.js
+        var mG_domCommon;
+
+        // file:MyProjects/projectA/src/js/domModule/DOM0.js
+        if( document.all ){}
+
+        // file:MyProjects/projectA/src/js/domModule/DOM1.js
+        if( document.getElementsByTagName ){}
+    })();
+
+    (function(){
+        // file:MyProjects/projectA/src/js/ajaxModule/moduleGlobal.js
+        var mG_ajaxCommon;
+
+        // file:MyProjects/projectA/src/js/ajaxModule/XHR.js
+        if( window.XMLHttpRequest ){}
+
+        // file:MyProjects/projectA/src/js/ajaxModule/fetch.js
+        if( window.fetch ){}
+    })();
+
+    // file:MyProjects/projectB/src/js/packageGlobal.js
+    var pG$projectB_CACHE = {};
+
+    (function(){
+        // file:MyProjects/projectB/src/js/modalWindow/moduleGlobal.js
+        var mG_modalWindowCommon;
+
+        // file:MyProjects/projectB/src/js/modalWindow/manager.js
+        var modalWindowManager;
+
+        // file:MyProjects/projectB/src/js/modalWindow/modalWindowClass.js
+        var ModalWindowClass;
+    })();
+})(window,document);
 ~~~

@@ -15,7 +15,7 @@ const PluginError = require( 'plugin-error' ),
 module.exports = function( options ){
     const _options             = options || {},
           TEST_MODE            = _options.testData,
-          FILE_LIST            = [],
+          FILE_LIST            = {},
           SRC_FILES            = TEST_MODE || {},
           BOM                  = String.fromCharCode( 65279 ),
           LABEL_GLOBAL         = _options.labelGlobal        || 'global',
@@ -24,17 +24,18 @@ module.exports = function( options ){
           PACKAGE_GLOBAL_ARGS  = _options.packageGlobalArgs  || '',
           OUTPUT_FILE_NAME     = _options.outputFilename     || 'output.js',
           WRAP_ALL             = _options.wrapAll,
-          BASE_PATH            = TEST_MODE ? _options.basePath : Path.resolve( _options.basePath || 'src' );
+          IS_MULTI_BASE_PATH   = Array.isArray( _options.basePath ),
+          BASE_PATH            = _options.basePath || '';
+
+    if( !IS_MULTI_BASE_PATH ){
+        FILE_LIST[ '' ] = [];
+    };
 
     function transform( file, encoding, callback ){
-        if( TEST_MODE ){
-            return callback();
-        };
+        if( TEST_MODE ) return callback();
 
-        if( file.isNull() ){
-            // this.push( file );
-            return callback();
-        };
+        if( file.isNull() ) return callback();
+
         if( file.isStream() ){
             this.emit( 'error', new PluginError( PluginName, 'Streaming not supported' ) );
             return callback();
@@ -44,34 +45,63 @@ module.exports = function( options ){
             return callback();
         };
 
-        var content = file.contents.toString( encoding ).split( '\r' ).join( '' ).split( BOM ).join( '' ); // Remove BOM
+        var content = file.contents.toString( encoding ).split( '\r' ).join( '' ).split( BOM ).join( '' ), // Remove BOM
+            projectBasePath = '',
+            l = BASE_PATH.length, i = 0, path;
 
         if( content ){
-            FILE_LIST.push( { path : Path.relative( BASE_PATH, file.path ), content : content } );
+            if( IS_MULTI_BASE_PATH ){
+                path = Path.resolve( file.path );
+                for( ; i < l; ++i ){
+                    if( file.path.indexOf( Path.resolve( BASE_PATH[ i ] ) ) !== -1 ){
+                        if( projectBasePath ){
+                            this.emit( 'error', new PluginError( PluginName, path + ' は複数の basePath に含まれます! ' + BASE_PATH ) );
+                            return callback();
+                        } else {
+                            projectBasePath = BASE_PATH[ i ];
+                            FILE_LIST[ projectBasePath ] = FILE_LIST[ projectBasePath ] || [];
+                        };
+                    };
+                };
+                if( !projectBasePath ){
+                    this.emit( 'error', new PluginError( PluginName, path + ' を含める basePath がありません! ' + BASE_PATH ) );
+                    return callback();
+                };
+            };
+            FILE_LIST[ projectBasePath ].push( {
+                    path    : Path.relative( Path.resolve( IS_MULTI_BASE_PATH ? projectBasePath : BASE_PATH ), file.path ),
+                    content : content
+                } );
         };
         callback();
     };
 
     function flush( callback ){
-        var i = -1, texts = [], file,
+        var projectBasePath,
+            i, texts = [], file,
             path, content, dirTransition, lastPath = '<dummy>.js',
-            currentDepth = 0, dirDepth = 0, wrap;
+            currentDepth = 0, wrap;
 
         // sort
         if( !TEST_MODE ){
-            FILE_LIST.sort( function( a, b ){ return a.path < b.path ? -1 : 1 } );
-            for( ; file = FILE_LIST[ ++i ]; ){
-                // console.log( file.path );
-                SRC_FILES[ file.path ] = file.content;
+            for( projectBasePath in FILE_LIST ){
+                FILE_LIST[ projectBasePath ].sort( function( a, b ){ return a.path < b.path ? -1 : 1 } );
+                for( i = -1; file = FILE_LIST[ projectBasePath ][ ++i ]; ){
+                    // console.log( file.path );
+                    SRC_FILES[ projectBasePath ] = SRC_FILES[ projectBasePath ] || {};
+                    SRC_FILES[ projectBasePath ][ file.path ] = file.content;
+                };
             };
         };
 
         // global
-        for( path in SRC_FILES ){
-            if( path.match( LABEL_GLOBAL ) ){
-                texts.push( '// file:' + path, SRC_FILES[ path ] );
-                console.log( '// file:' + path );
-                delete SRC_FILES[ path ];
+        for( projectBasePath in SRC_FILES ){
+            for( path in SRC_FILES[ projectBasePath ] ){
+                if( LABEL_GLOBAL === '*' || path.match( LABEL_GLOBAL ) ){
+                    texts.push( '// file:' + projectBasePath + path, SRC_FILES[ projectBasePath ][ path ] );
+                    console.log( '// file:' + projectBasePath + path );
+                    delete SRC_FILES[ projectBasePath ][ path ];
+                };
             };
         };
 
@@ -79,29 +109,27 @@ module.exports = function( options ){
         texts.push( '(function(' + PACKAGE_GLOBAL_ARGS + '){' );
         console.log( '(function(' + PACKAGE_GLOBAL_ARGS + '){' );
 
-        for( path in SRC_FILES ){
-            content = SRC_FILES[ path ];
-            if( path.match( LABEL_PACKAGE_GLOBAL ) ){
-                nestFunction( -currentDepth, content );
-            } else {
-                dirTransition = comparePath( lastPath, path );
-                wrap = WRAP_ALL && !path.match( LABEL_MODULE_GLOBAL );
-
-                if( typeof dirTransition === 'number' ){
-                    nestFunction( currentDepth ? dirTransition : dirDepth, content, wrap );
+        for( projectBasePath in SRC_FILES ){
+            for( path in SRC_FILES[ projectBasePath ] ){
+                content = SRC_FILES[ projectBasePath ][ path ];
+                if( LABEL_PACKAGE_GLOBAL === '*' || path.match( LABEL_PACKAGE_GLOBAL ) ){
+                    nestFunction( -currentDepth );
+                    nestFunction( 0, content );
                 } else {
-                    // console.log( '// crt:' + currentDepth + ' ↑' + dirTransition.up + ' ↓' + dirTransition.down );
-                    if( currentDepth ){
+                    dirTransition = comparePath( lastPath, path );
+                    wrap = WRAP_ALL && !path.match( LABEL_MODULE_GLOBAL );
+
+                    if( typeof dirTransition === 'number' ){
+                        nestFunction( dirTransition, content, wrap );
+                    } else {
                         nestFunction( - dirTransition.up );
                         nestFunction( dirTransition.down, content, wrap );
-                    } else {
-                        nestFunction( dirDepth, content, wrap );
                     };
                 };
+                lastPath = path;
             };
-            lastPath = path;
+            nestFunction( -currentDepth );
         };
-        nestFunction( -currentDepth );
         texts.push( '})(' + PACKAGE_GLOBAL_ARGS + ');' );
         console.log( '})(' + PACKAGE_GLOBAL_ARGS + ');' );
 
@@ -109,8 +137,10 @@ module.exports = function( options ){
            var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),
                newPathElms = newPath.split( TEST_MODE ? '/' : Path.sep ),
                oldDirLen   = oldPathElms.length - 1,
-               newDirLen   = dirDepth = newPathElms.length - 1,
+               newDirLen   = newPathElms.length - 1,
                i = 0;
+
+            if( currentDepth === 0 ) return newDirLen;
 
             for( ; i < Math.min( newDirLen, oldDirLen ); ++i ){
                 if( oldPathElms[ i ] !== newPathElms[ i ] ){
@@ -121,35 +151,46 @@ module.exports = function( options ){
         };
 
         function nestFunction( depth, content, wrap ){
-            content = content || '';
-            currentDepth += depth;
+            var targetDepth = currentDepth + depth;
 
-            if( currentDepth < 0 ) this.emit( 'error', new PluginError( PluginName, 'Nesting error!' ) );
+            content = content || '';
+
+            if( targetDepth < 0 ) this.emit( 'error', new PluginError( PluginName, 'Nesting error!' ) );
 
             if( 0 < depth ){
-                for( ; depth; --depth ){
+                for( ++currentDepth; currentDepth <= targetDepth; ++currentDepth ){
                     texts.push( '(function(){' );
-                    console.log( '(function(){' );
+                    console.log( tab( currentDepth ) + '(function(){ ' );
                 };
             };
-            content && texts.push( '// file:' + path );
+
+            content && texts.push( '// file:' + projectBasePath + path );
             if( wrap ){
                 texts.push( '(function(){', content, '})();' );
-                console.log( '(function(){ /* ', path, ' */ })();' );
+                console.log( tab( targetDepth ) + '(function(){ /* ', tab( targetDepth + 1 ) + projectBasePath + path, tab( targetDepth ) + ' */ })();' );
             } else if( content ){
                 texts.push( content );
-                console.log( '// file:' + path );
+                console.log( tab( targetDepth + 1 ) + '// file:' + projectBasePath + path );
             };
+
             if( depth < 0 ){
-                for( ; depth; ++depth ){
+                for( ; targetDepth < currentDepth; --currentDepth ){
                     texts.push( '})();' );
-                    console.log( '})();' );
+                    console.log( tab( currentDepth ) + '})();' );
                 };
             };
+            currentDepth = targetDepth;
+        };
+
+        function tab( depth ){
+            var str = '    ';
+
+            while( 0 < ( --depth ) ) str += '    ';
+            return str;
         };
 
         if( TEST_MODE ){
-            console.log( texts.join( '\n' ) );
+            // console.log( texts.join( '\n' ) );
         } else {
             this.push(new Vinyl({
                 // base     : '/',
