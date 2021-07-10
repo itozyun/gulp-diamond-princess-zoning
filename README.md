@@ -4,10 +4,10 @@
 
 ---
 
-js ファイルを一本化しつつ、ファイル名やフォルダ名を元に `(function(){ ... })()` でラップする gulp プラグインです。
+js ファイルを一本化しつつ、ファイル名やディレクトリを元に `(function(){ ... })()` でラップする gulp プラグインです。
 
 1. レガシーなゾーニングによって、js パッケージの変数と関数の宣言に制約を設けます
-2. モジュール毎にスコープを作ることで、変数と関数へのアクセスを高速化します
+2. モジュール毎にスコープを作ることで、変数と関数へのアクセスを高速化します、多分
 
 ## 背景
 
@@ -60,10 +60,11 @@ gulp.task( 'precompile',
 | labelGlobal        | `'global'`        | `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。Since version 0.9.8 : `"*"` を指定すると全てが global になるけどこれでは gulp-concat と変わらない。 |
 | labelPackageGlobal | `'packageGlobal'` | `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。Since version 0.9.8 : `"*"` を指定すると global 以外は packageGlobal になる。小さいプロジェクトで、`(function(){ ... })()` のオーバーヘッドを忌避する場合に。 |
 | labelModuleGlobal  | `'moduleGlobal'`  | `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。 |
-| packageGlobalArgs  | `''`              | packageGlobal に渡す引数。ブラウザ提供のグローバルメンバーをローカル化することでアクセスが早くなったり、圧縮時に名前が短くなる。 |
+| toEndOfScript | `'toEndOfScript'` | [スクリプトの最後に配置したいファイル](#toEndOfScript)の `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。 |
+| packageGlobalArgs  | `''`              | packageGlobal に渡す引数。ブラウザ提供のグローバルメンバーをローカル化することでアクセスが早くなったり、圧縮時に名前が短くなる。[配列 `['window, nameSpace, emptyFunction', 'this, {}, new Function()']` も可能です。](#packageGlobalArgs_array) |
 | outputFilename     | `'output.js'`     |  |
-| basePath           | `''`              | 内部では `Path.resolve(basePath)` した値が使われます。 |
-| wrapAll            | `false`           |  |
+| basePath           | `''`              | 内部では `Path.resolve(basePath)` した値が使われます。[配列 `['projectA/src','projectB/src']`　も可能です。](#basePath_array) |
+| wrapAll            | `false`           | [wrapAll について](#wrapAll) |
 
 ### 各ファイルの内容
 
@@ -82,6 +83,9 @@ if( window.XMLHttpRequest ){}
 
 // myUtilProject/ajaxModule/Fetch.js
 if( window.fetch ){}
+
+// myUtilProject/toEndOfScript.js
+function finalize(){}
 ~~~
 
 ### output
@@ -104,14 +108,17 @@ var Util = {};
         // myUtilProject/ajaxModule/Fetch.js
         if( window.fetch ){}
     })();
+    // myUtilProject/toEndOfScript.js
+    function finalize(){}
 })(window,document);
 ~~~
 
-## wrapAll
+<a name="wrapAll"></a>
+## `wrapAll`
 
 モジュール下の各ファイルを `(function(){})()` でラップするのは、テスト用途です。共用の変数や関数を適切に moduleGlobal に記述していない場合、例えば Clodure Compiler 等でエラーが出ます。
 
-深すぎる function の入れ子は、Presto Opera で不具合に遭遇した(*1)ことがある為、避けます。
+深すぎる `function` の入れ子は、Presto Opera で不具合に遭遇した(*1)ことがある為、避けます。
 
 1. [Opera 9 ～ 11 で動かない問題．](https://ja.osdn.net/projects/pettanr/wiki/ItoZyun)
 
@@ -136,12 +143,29 @@ var Util = {};
             if( window.fetch ){}
         })();
     })();
+    // myUtilProject/toEndOfScript.js
+    function finalize(){}
 })();
 ~~~
 
-## 複数のパッケージでパッケージグローバルを共有する(Since version 0.9.8)
+<a name="basePath_array"></a>
+## 複数の package で `packageGlobal` を共有する(Since version 0.9.8)
 
-異なるディレクトリで開発しているパッケージ間で、packageGlobal を共有できます。この為には、basePath に配列を与えます。
+異なるディレクトリで開発している package 間で、`packageGlobal` を共有できます。この為には、`basePath` に配列を与えます。
+
+<a name="toEndOfScript"></a>
+## `toEndOfScript` (Since version 0.9.9)
+
+全てのモジュールが読み込まれてから実行したいコードの記述されたファイルのパスには `toEndOfScript` に指定した文字列を含むようにします。ファイルは `packageGlobal` の最期に出現します。
+
+<a name="packageGlobalArgs_array"></a>
+## `packageGlobalArgs` に配列を指定する (Since version 0.9.9)
+
+配列の長さは2です。1番目の配列には packageGlobal を囲む `(funciton(){})()` の引数名。2番目の配列には `(funciton(){})()` を呼び出す値です。こちらには関数を書くことも出来ます。
+
+指定例: `[ "window,emptyFunction,undefined", "this,new Function,void 0" ]`
+
+出力例: `(funciton(window,emptyFunction,undefined){...})(this,new Function,void 0);`
 
 ### MyProjects/packageB/gulpfile.js
 
@@ -169,11 +193,11 @@ var g_Framework = {};
 
 (function(window,document){
     // file:MyProjects/projectA/src/js/packageGlobal.js
-    var pG$projectA_TEMP = {};
+    var p_projectA_TEMP = {};
 
     (function(){
         // file:MyProjects/projectA/src/js/domModule/moduleGlobal.js
-        var mG_domCommon;
+        var m_domCommon;
 
         // file:MyProjects/projectA/src/js/domModule/DOM0.js
         if( document.all ){}
@@ -184,7 +208,7 @@ var g_Framework = {};
 
     (function(){
         // file:MyProjects/projectA/src/js/ajaxModule/moduleGlobal.js
-        var mG_ajaxCommon;
+        var m_ajaxCommon;
 
         // file:MyProjects/projectA/src/js/ajaxModule/XHR.js
         if( window.XMLHttpRequest ){}
@@ -194,11 +218,11 @@ var g_Framework = {};
     })();
 
     // file:MyProjects/projectB/src/js/packageGlobal.js
-    var pG$projectB_CACHE = {};
+    var p_projectB_CACHE = {};
 
     (function(){
         // file:MyProjects/projectB/src/js/modalWindow/moduleGlobal.js
-        var mG_modalWindowCommon;
+        var m_modalWindowCommon;
 
         // file:MyProjects/projectB/src/js/modalWindow/manager.js
         var modalWindowManager;

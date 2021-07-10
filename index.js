@@ -13,19 +13,20 @@ const PluginError = require( 'plugin-error' ),
  * 
  */
 module.exports = function( options ){
-    const _options             = options || {},
-          TEST_MODE            = _options.testData,
-          FILE_LIST            = {},
-          SRC_FILES            = TEST_MODE || {},
-          BOM                  = String.fromCharCode( 65279 ),
-          LABEL_GLOBAL         = _options.labelGlobal        || 'global',
-          LABEL_PACKAGE_GLOBAL = _options.labelPackageGlobal || 'packageGlobal',
-          LABEL_MODULE_GLOBAL  = _options.labelModuleGlobal  || 'moduleGlobal',
-          PACKAGE_GLOBAL_ARGS  = _options.packageGlobalArgs  || '',
-          OUTPUT_FILE_NAME     = _options.outputFilename     || 'output.js',
-          WRAP_ALL             = _options.wrapAll,
-          IS_MULTI_BASE_PATH   = Array.isArray( _options.basePath ),
-          BASE_PATH            = _options.basePath || '';
+    const _options               = options || {},
+          TEST_MODE              = _options.testData,
+          FILE_LIST              = {},
+          SRC_FILES              = TEST_MODE || {},
+          BOM                    = String.fromCharCode( 65279 ),
+          LABEL_GLOBAL           = _options.labelGlobal        || 'global',
+          LABEL_PACKAGE_GLOBAL   = _options.labelPackageGlobal || 'packageGlobal',
+          LABEL_MODULE_GLOBAL    = _options.labelModuleGlobal  || 'moduleGlobal',
+          LABEL_TO_END_OF_SCRIPT = _options.toEndOfScript    || 'toEndOfScript',
+          PACKAGE_GLOBAL_ARGS    = _options.packageGlobalArgs  || '',
+          OUTPUT_FILE_NAME       = _options.outputFilename     || 'output.js',
+          WRAP_ALL               = _options.wrapAll,
+          IS_MULTI_BASE_PATH     = Array.isArray( _options.basePath ),
+          BASE_PATH              = _options.basePath || '';
 
     if( !IS_MULTI_BASE_PATH ){
         FILE_LIST[ '' ] = [];
@@ -53,7 +54,7 @@ module.exports = function( options ){
             if( IS_MULTI_BASE_PATH ){
                 path = Path.resolve( file.path );
                 for( ; i < l; ++i ){
-                    if( file.path.indexOf( Path.resolve( BASE_PATH[ i ] ) ) !== -1 ){
+                    if( 0 === path.indexOf( Path.resolve( BASE_PATH[ i ] ) ) ){
                         if( projectBasePath ){
                             this.emit( 'error', new PluginError( PluginName, path + ' は複数の basePath に含まれます! ' + BASE_PATH ) );
                             return callback();
@@ -77,7 +78,8 @@ module.exports = function( options ){
     };
 
     function flush( callback ){
-        var projectBasePath,
+        var scriptsMoveToEnd = [],
+            projectBasePath,
             i, texts = [], file,
             path, content, dirTransition, lastPath = '<dummy>.js',
             currentDepth = 0, wrap;
@@ -94,6 +96,16 @@ module.exports = function( options ){
             };
         };
 
+        // scriptsMoveToEnd
+        for( projectBasePath in SRC_FILES ){
+            for( path in SRC_FILES[ projectBasePath ] ){
+                if( path.match( LABEL_TO_END_OF_SCRIPT ) ){
+                    scriptsMoveToEnd.push( '// file:' + projectBasePath + path, SRC_FILES[ projectBasePath ][ path ] );
+                    delete SRC_FILES[ projectBasePath ][ path ];
+                };
+            };
+        };
+
         // global
         for( projectBasePath in SRC_FILES ){
             for( path in SRC_FILES[ projectBasePath ] ){
@@ -106,8 +118,8 @@ module.exports = function( options ){
         };
 
         // packageGlobal, moduleGlobal, module imprementation
-        texts.push( '(function(' + PACKAGE_GLOBAL_ARGS + '){' );
-        console.log( '(function(' + PACKAGE_GLOBAL_ARGS + '){' );
+        texts.push( '(function(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 0 ] : PACKAGE_GLOBAL_ARGS )  + '){' );
+        console.log( '(function(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 0 ] : PACKAGE_GLOBAL_ARGS ) + '){' );
 
         for( projectBasePath in SRC_FILES ){
             for( path in SRC_FILES[ projectBasePath ] ){
@@ -130,8 +142,15 @@ module.exports = function( options ){
             };
             nestFunction( -currentDepth );
         };
-        texts.push( '})(' + PACKAGE_GLOBAL_ARGS + ');' );
-        console.log( '})(' + PACKAGE_GLOBAL_ARGS + ');' );
+
+        // scriptsMoveToEnd
+        for( ; scriptsMoveToEnd.length; ){
+            console.log( scriptsMoveToEnd[ 0 ] );
+            texts.push( scriptsMoveToEnd.shift(), scriptsMoveToEnd.shift() );
+        };
+
+        texts.push( '})(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 1 ] : PACKAGE_GLOBAL_ARGS ) + ');' );
+        console.log( '})(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 1 ] : PACKAGE_GLOBAL_ARGS ) + ');' );
 
         function comparePath( oldPath, newPath ){
            var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),
