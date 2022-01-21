@@ -148,11 +148,6 @@ var Util = {};
 })();
 ~~~
 
-<a name="basePath_array"></a>
-## 複数の package で `packageGlobal` を共有する(Since version 0.9.8)
-
-異なるディレクトリで開発している package 間で、`packageGlobal` を共有できます。この為には、`basePath` に配列を与えます。
-
 <a name="toEndOfScript"></a>
 ## `toEndOfScript` (Since version 0.9.9)
 
@@ -166,6 +161,11 @@ var Util = {};
 指定例: `[ "window,emptyFunction,undefined", "this,new Function,void 0" ]`
 
 出力例: `(funciton(window,emptyFunction,undefined){...})(this,new Function,void 0);`
+
+<a name="basePath_array"></a>
+## 複数の package で `packageGlobal` を共有する(Since version 0.9.8)
+
+異なるディレクトリで開発している package 間で、`packageGlobal` を共有できます。この為には、`basePath` に配列を与えます。
 
 ### MyProjects/packageB/gulpfile.js
 
