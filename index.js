@@ -21,7 +21,7 @@ module.exports = function( options ){
           LABEL_GLOBAL           = _options.labelGlobal        || 'global',
           LABEL_PACKAGE_GLOBAL   = _options.labelPackageGlobal || 'packageGlobal',
           LABEL_MODULE_GLOBAL    = _options.labelModuleGlobal  || 'moduleGlobal',
-          LABEL_TO_END_OF_SCRIPT = _options.toEndOfScript    || 'toEndOfScript',
+          LABEL_TO_END_OF_SCRIPT = _options.toEndOfScript      || 'toEndOfScript',
           PACKAGE_GLOBAL_ARGS    = _options.packageGlobalArgs  || '',
           OUTPUT_FILE_NAME       = _options.outputFilename     || 'output.js',
           WRAP_ALL               = _options.wrapAll,
@@ -154,10 +154,18 @@ module.exports = function( options ){
 
         function comparePath( oldPath, newPath ){
            var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),
-               newPathElms = newPath.split( TEST_MODE ? '/' : Path.sep ),
-               oldDirLen   = oldPathElms.length - 1,
-               newDirLen   = newPathElms.length - 1,
-               i = 0;
+               newPathElms = newPath.split( TEST_MODE ? '/' : Path.sep );
+
+            if( oldPath.match( LABEL_MODULE_GLOBAL ) ){
+                oldPathElms.splice( 2, oldPathElms.length - 2 );
+            };
+            if( newPath.match( LABEL_MODULE_GLOBAL ) ){
+                newPathElms.splice( 2, newPathElms.length - 2 );
+            };
+
+            var oldDirLen   = oldPathElms.length - 1,
+                newDirLen   = newPathElms.length - 1,
+                i = 0;
 
             if( currentDepth === 0 ) return newDirLen;
 
@@ -186,7 +194,7 @@ module.exports = function( options ){
             content && texts.push( '// file:' + projectBasePath + path );
             if( wrap ){
                 texts.push( '(function(){', content, '})();' );
-                console.log( tab( targetDepth ) + '(function(){ /* ', tab( targetDepth + 1 ) + projectBasePath + path, tab( targetDepth ) + ' */ })();' );
+                console.log( tab( targetDepth + 1 ) + '(function(){ /* ', projectBasePath + path, ' */ })();' );
             } else if( content ){
                 texts.push( content );
                 console.log( tab( targetDepth + 1 ) + '// file:' + projectBasePath + path );
