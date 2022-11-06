@@ -153,23 +153,28 @@ module.exports = function( options ){
         console.log( '})(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 1 ] : PACKAGE_GLOBAL_ARGS ) + ');' );
 
         function comparePath( oldPath, newPath ){
-           var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),
-               newPathElms = newPath.split( TEST_MODE ? '/' : Path.sep );
+            var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),
+                newPathElms = newPath.split( TEST_MODE ? '/' : Path.sep ),
+                oldDirLen   = oldPathElms.length,
+                newDirLen   = newPathElms.length;
 
             if( oldPath.match( LABEL_MODULE_GLOBAL ) ){
                 oldPathElms.splice( 2, oldPathElms.length - 2 );
-            };
-            if( newPath.match( LABEL_MODULE_GLOBAL ) ){
-                newPathElms.splice( 2, newPathElms.length - 2 );
+                oldDirLen = 1;
+            } else {
+                --oldDirLen;
             };
 
-            var oldDirLen   = oldPathElms.length - 1,
-                newDirLen   = newPathElms.length - 1,
-                i = 0;
+            if( newPath.match( LABEL_MODULE_GLOBAL ) ){
+                newPathElms.splice( 2, newPathElms.length - 2 );
+                newDirLen = 1;
+            } else {
+                --newDirLen;
+            };
 
             if( currentDepth === 0 ) return newDirLen;
 
-            for( ; i < Math.min( newDirLen, oldDirLen ); ++i ){
+            for( var i = 0; i < Math.min( newDirLen, oldDirLen ); ++i ){
                 if( oldPathElms[ i ] !== newPathElms[ i ] ){
                     return { up : oldDirLen - i, down : newDirLen - i };
                 };

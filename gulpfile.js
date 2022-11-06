@@ -71,6 +71,8 @@ gulp.task( 'test3',
                             'MyProjects/projectA/src/js/' : {
                                 'global.js'                       : 'var g_Util = {};',
                                 'packageGlobal.js'                : 'var pG$projectA_TEMP = {};',
+                                'domModule/moduleGlobal/var.js'   : 'var mG_state = 0;',
+                                'domModule/moduleGlobal/CONST.js' : 'var mG_LIST = [];',
                                 'domModule/moduleGlobal.js'       : 'var mG_domCommon;',
                                 'domModule/DOM0.js'               : 'if( document.all ){}',
                                 'domModule/DOM1.js'               : 'if( document.getElementsByTagName ){}',
