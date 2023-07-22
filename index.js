@@ -100,7 +100,7 @@ module.exports = function( options ){
         for( projectBasePath in SRC_FILES ){
             for( path in SRC_FILES[ projectBasePath ] ){
                 if( path.match( LABEL_TO_END_OF_SCRIPT ) ){
-                    scriptsMoveToEnd.push( '// file:' + projectBasePath + path, SRC_FILES[ projectBasePath ][ path ] );
+                    scriptsMoveToEnd.push( '// file:' + projectBasePath + '/' + path, SRC_FILES[ projectBasePath ][ path ] );
                     delete SRC_FILES[ projectBasePath ][ path ];
                 };
             };
@@ -110,8 +110,8 @@ module.exports = function( options ){
         for( projectBasePath in SRC_FILES ){
             for( path in SRC_FILES[ projectBasePath ] ){
                 if( LABEL_GLOBAL === '*' || path.match( LABEL_GLOBAL ) ){
-                    texts.push( '// file:' + projectBasePath + path, SRC_FILES[ projectBasePath ][ path ] );
-                    console.log( '// file:' + projectBasePath + path );
+                    texts.push( '// file:' + projectBasePath + '/' + path, SRC_FILES[ projectBasePath ][ path ] );
+                    console.log( '// file:' + projectBasePath + '/' + path );
                     delete SRC_FILES[ projectBasePath ][ path ];
                 };
             };
@@ -196,13 +196,13 @@ module.exports = function( options ){
                 };
             };
 
-            content && texts.push( '// file:' + projectBasePath + path );
+            content && texts.push( '// file:' + projectBasePath + '/' + path );
             if( wrap ){
                 texts.push( '(function(){', content, '})();' );
                 console.log( tab( targetDepth + 1 ) + '(function(){ /* ', projectBasePath + path, ' */ })();' );
             } else if( content ){
                 texts.push( content );
-                console.log( tab( targetDepth + 1 ) + '// file:' + projectBasePath + path );
+                console.log( tab( targetDepth + 1 ) + '// file:' + projectBasePath + '/' + path );
             };
 
             if( depth < 0 ){
