@@ -23,6 +23,7 @@ module.exports = function( options ){
           LABEL_MODULE_GLOBAL    = _options.labelModuleGlobal  || 'moduleGlobal',
           LABEL_TO_END_OF_SCRIPT = _options.toEndOfScript      || 'toEndOfScript',
           PACKAGE_GLOBAL_ARGS    = _options.packageGlobalArgs  || '',
+          ES_MODULE_EXPORTS      = _options.esModuleExports    || false,
           OUTPUT_FILE_NAME       = _options.outputFilename     || 'output.js',
           WRAP_ALL               = _options.wrapAll,
           IS_MULTI_BASE_PATH     = Array.isArray( _options.basePath ),
@@ -118,8 +119,23 @@ module.exports = function( options ){
         };
 
         // packageGlobal, moduleGlobal, module imprementation
-        texts.push( '(function(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 0 ] : PACKAGE_GLOBAL_ARGS )  + '){' );
-        console.log( '(function(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 0 ] : PACKAGE_GLOBAL_ARGS ) + '){' );
+        if( ES_MODULE_EXPORTS ){
+            if( ES_MODULE_EXPORTS === true ){
+                texts.push(  'module.exports = function(' );
+                console.log( 'module.exports = function(' );
+            } else if( Array.isArray( ES_MODULE_EXPORTS ) ){
+                texts.push(  '/** \n' + ES_MODULE_EXPORTS[ 0 ] + '\n */' );
+                console.log( '/** \n' + ES_MODULE_EXPORTS[ 0 ] + '\n */' );
+                texts.push(  'module.exports = function(' + ES_MODULE_EXPORTS[ 1 ] + '){' );
+                console.log( 'module.exports = function(' + ES_MODULE_EXPORTS[ 1 ] + '){' );
+            } else if( typeof ES_MODULE_EXPORTS === 'string' ){
+                texts.push(  'module.exports = function(' + ES_MODULE_EXPORTS + '){' );
+                console.log( 'module.exports = function(' + ES_MODULE_EXPORTS + '){' );
+            };
+        } else {
+            texts.push(  '(function(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 0 ] : PACKAGE_GLOBAL_ARGS ) + '){' );
+            console.log( '(function(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 0 ] : PACKAGE_GLOBAL_ARGS ) + '){' );
+        };
 
         for( projectBasePath in SRC_FILES ){
             for( path in SRC_FILES[ projectBasePath ] ){
@@ -149,8 +165,15 @@ module.exports = function( options ){
             texts.push( scriptsMoveToEnd.shift(), scriptsMoveToEnd.shift() );
         };
 
-        texts.push( '})(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 1 ] : PACKAGE_GLOBAL_ARGS ) + ');' );
-        console.log( '})(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 1 ] : PACKAGE_GLOBAL_ARGS ) + ');' );
+        if( ES_MODULE_EXPORTS ){
+            if( ES_MODULE_EXPORTS === true || Array.isArray( ES_MODULE_EXPORTS ) || typeof ES_MODULE_EXPORTS === 'string' ){
+                texts.push(  '};' );
+                console.log( '};' );
+            };
+        } else {
+            texts.push(  '})(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 1 ] : PACKAGE_GLOBAL_ARGS ) + ');' );
+            console.log( '})(' + ( Array.isArray( PACKAGE_GLOBAL_ARGS ) ? PACKAGE_GLOBAL_ARGS[ 1 ] : PACKAGE_GLOBAL_ARGS ) + ');' );
+        };
 
         function comparePath( oldPath, newPath ){
             var oldPathElms = oldPath.split( TEST_MODE ? '/' : Path.sep ),

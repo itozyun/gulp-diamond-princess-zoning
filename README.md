@@ -66,6 +66,7 @@ gulp.task( 'precompile',
 | labelModuleGlobal  | `'moduleGlobal'`  | `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。 |
 | toEndOfScript | `'toEndOfScript'` | [スクリプトの最後に配置したいファイル](#toEndOfScript)の `Path.relative(Path.resolve(basePath),vinyl.path)` に match する文字列。 |
 | packageGlobalArgs  | `''`              | packageGlobal に渡す引数。ブラウザ提供のグローバルメンバーをローカル化することでアクセスが早くなったり、圧縮時に名前が短くなる。[配列 `['window, nameSpace, emptyFunction', 'this, {}, new Function()']` も可能です。](#packageGlobalArgs_array) |
+| esModuleExports    | `''`              | package をエクスポート(`module.exports=function(){/* package */};`)する。その際に親モジュールから受け取る引数を記述する。配列の場合、`[0]` に拡張コメント `[1]` に引数をかく。例: `[ '@param {VSCode} vscode\n@param {ExtentionContext} context' ]` (Since version 0.9.15) |
 | outputFilename     | `'output.js'`     |  |
 | basePath           | `''`              | 内部では `Path.resolve(basePath)` した値が使われます。[配列 `['projectA/src','projectB/src']`　も可能です。](#basePath_array) |
 | wrapAll            | `false`           | [wrapAll について](#wrapAll) |
